@@ -1,6 +1,6 @@
 // 
-// Zumur
-// Copyright (c) 2014 ${CopyrightHolder}, All rights reserved.
+// GoCQL Migrate
+// Copyright (c) 2015 Mess, All rights reserved.
 // 
 // Developed by Mess in New York City
 // http://thisismess.com/
@@ -105,7 +105,7 @@ func (c *ColumnFamily) create(cf string) (string, error) {
   i := 0
   for _, col := range c.Columns {
     if i > 0 { cql += ", " }
-    cql += fmt.Sprintf("%s %s", col.Name, col.CType)
+    cql += fmt.Sprintf("%q %s", col.Name, col.CType)
     if col.PKey {
       pkey = append(pkey, col)
     }
@@ -122,7 +122,7 @@ func (c *ColumnFamily) create(cf string) (string, error) {
   i = 0
   for _, col := range pkey {
     if i > 0 { cql += ", " }
-    cql += col.Name
+    cql += fmt.Sprintf("%q", col.Name)
     i++
   }
   
@@ -209,8 +209,8 @@ func (k Keyspace) Migrate(ksname string, c *gocql.Session) error {
         log.Printf("[%s] [%s] missing columns: %+v", ksname, key, colnames(columns))
         
         for _, e := range columns {
-          log.Printf("[%s] [%s] adding column: %s.%s (%s)", ksname, key, key, e.Name, e.CType)
-          query := fmt.Sprintf("ALTER TABLE %s ADD %s %s", key, e.Name, e.CType)
+          log.Printf("[%s] [%s] adding column: %s.%q (%s)", ksname, key, key, e.Name, e.CType)
+          query := fmt.Sprintf("ALTER TABLE %s ADD %q %s", key, e.Name, e.CType)
           if err := c.Query(query).Exec(); err != nil {
             return err
           }
