@@ -30,6 +30,18 @@ func contains(slice []string, element string) int {
 }
 
 /**
+ * Determine if a slice contains an element
+ */
+func containsKey(slice []Key, element Key) int {
+  for i, e := range slice {
+    if element == e {
+      return i
+    }
+  }
+  return -1
+}
+
+/**
  * Obtain map keys
  */
 func mapkeys(from map[string]ColumnFamily) []string {
@@ -56,6 +68,36 @@ func colnames(from map[string]Column) []string {
 }
 
 /**
+ * Argument list
+ */
+func arglist(a []string) string {
+  var l string
+  for i, e := range a {
+    if i > 0 {
+      l += fmt.Sprintf(", %s", e)
+    }else{
+      l += e
+    }
+  }
+  return l
+}
+
+/**
+ * Key list (quoted)
+ */
+func keylist(k []Key) string {
+  var l string
+  for i, e := range k {
+    if i > 0 {
+      l += fmt.Sprintf(", %q", e)
+    }else{
+      l += fmt.Sprintf("%q", e)
+    }
+  }
+  return l
+}
+
+/**
  * Column
  */
 type Column struct {
@@ -73,11 +115,17 @@ type Order struct {
 }
 
 /**
+ * Partition
+ */
+type Key string
+
+/**
  * Column family
  */
 type ColumnFamily struct {
   Columns       []Column
   Ordering      []Order
+  Partitioning  []Key
 }
 
 /**
@@ -121,20 +169,28 @@ func (c *ColumnFamily) create(cf string) (string, error) {
   
   i = 0
   for _, col := range pkey {
-    if i > 0 { cql += ", " }
-    cql += fmt.Sprintf("%q", col.Name)
+    if c.Partitioning != nil && len(c.Partitioning) > 1 {
+      if i == 0 {
+        cql += fmt.Sprintf("(%s)", keylist(c.Partitioning))
+      }else if containsKey(c.Partitioning, Key(col.Name)) < 0 {
+        cql += fmt.Sprintf(", %q", col.Name)
+      }
+    }else{
+      if i > 0 { cql += ", " }
+      cql += fmt.Sprintf("%q", col.Name)
+    }
     i++
   }
   
   cql += "))"
   
   if c.Ordering != nil && len(c.Ordering) > 0 {
-    cql += " with clustering order by ("
+    cql += " WITH CLUSTERING ORDER BY ("
     
     i = 0
     for _, ord := range c.Ordering {
       if i > 0 { cql += ", " }
-      cql += fmt.Sprintf("%s %s", ord.Name, ord.Direction)
+      cql += fmt.Sprintf("%q %s", ord.Name, ord.Direction)
       i++
     }
     
